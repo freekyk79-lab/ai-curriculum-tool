@@ -348,68 +348,47 @@ function copyDraft(btn){
     } else { fallbackCopy(btn); }
   } catch(e){ fallbackCopy(btn); }
 }
+
 function fallbackCopy(btn){
   const ta = document.createElement("textarea");
   ta.value = lastDraftText;
-  ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;";
+  ta.style.cssText = "position:fixed;top:0;left:0;width:2px;height:2px;opacity:0;";
   document.body.appendChild(ta);
-  ta.select();
+  ta.focus(); ta.select();
   try { document.execCommand("copy"); } catch(e){}
   document.body.removeChild(ta);
   const orig = btn.textContent; btn.textContent = "복사됨!";
   setTimeout(()=>{ btn.textContent = orig; }, 1500);
 }
 
-// 한국어(유니코드) 안전 base64 인코딩
-function unicodeBase64(str){
-  const bytes = new TextEncoder().encode(str);
-  let bin = "";
-  bytes.forEach(b => bin += String.fromCharCode(b));
-  return btoa(bin);
-}
-
 function downloadDraft(){
   const major = document.getElementById("major").value.trim() || "교과목초안";
-  const filename = major + "_AI교과목초안.txt";
-  try {
-    const b64 = unicodeBase64(lastDraftText);
-    const a = document.createElement("a");
-    a.href = "data:text/plain;charset=utf-8;base64," + b64;
-    a.download = filename;
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(()=>{ document.body.removeChild(a); }, 1000);
-  } catch(e) {
-    const w = window.open("","_blank");
-    if(w){ w.document.write("<pre>"+lastDraftText.replace(/</g,"&lt;")+"</pre>"); w.document.title = filename; }
+  const w = window.open("","_blank");
+  if(w){
+    w.document.open();
+    w.document.write('<html><head><meta charset="utf-8"><title>'+major+'_AI교과목초안</title>'
+      +'<style>body{font-family:"맑은 고딕",sans-serif;line-height:1.8;padding:40px;max-width:800px;margin:0 auto;}'
+      +'h2{color:#1f6f54;border-bottom:1px solid #ccc;padding-bottom:4px;}'
+      +'.tip{background:#e4efe9;padding:12px 16px;border-radius:4px;font-size:13px;margin-bottom:24px;}'
+      +'</style></head><body>'
+      +'<div class="tip">💡 이 페이지를 저장하려면: Ctrl+S (Windows) 또는 Cmd+S (Mac) → 파일 형식을 "웹 페이지, 전체" 선택</div>'
+      +'<h1>'+major+' — AI 융합 교과목 개요 초안</h1>');
+    lastDraftText.split('
+').forEach(line=>{
+      const t = line.trim();
+      if(t.startsWith('## ')) w.document.write('<h2>'+t.slice(3)+'</h2>');
+      else if(t==='') w.document.write('<br>');
+      else w.document.write('<p>'+line+'</p>');
+    });
+    w.document.write('</body></html>');
+    w.document.close();
+  } else {
+    alert("팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해주세요.");
   }
 }
 
 function downloadAsWord(){
-  const major = document.getElementById("major").value.trim() || "AI교과목초안";
-  const filename = major + "_AI교과목초안.doc";
-  const bodyHtml = lastDraftText.split("\n").map(line=>{
-    const t = line.trim();
-    if(t.startsWith("## ")) return '<h2 style="font-family:sans-serif;font-size:16pt;color:#1f6f54;border-bottom:1px solid #ccc;margin-top:20pt;">'+escapeHtml(t.slice(3))+'</h2>';
-    if(t==="") return "<p>&nbsp;</p>";
-    return '<p style="font-family:sans-serif;font-size:11pt;line-height:1.8;margin:4pt 0;">'+escapeHtml(line)+'</p>';
-  }).join("\n");
-  const fullHtml = '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"></head><body>'
-    +'<h1 style="font-family:sans-serif;font-size:20pt;">'+escapeHtml(major)+' — AI 융합 교과목 개요 초안</h1>'+bodyHtml+'</body></html>';
-  try {
-    const b64 = unicodeBase64(fullHtml);
-    const a = document.createElement("a");
-    a.href = "data:application/msword;base64," + b64;
-    a.download = filename;
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(()=>{ document.body.removeChild(a); }, 1000);
-  } catch(e) {
-    const w = window.open("","_blank");
-    if(w){ w.document.write(fullHtml); w.document.title = filename; }
-  }
+  downloadDraft();
 }
 </script>
 </body>
